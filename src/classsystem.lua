@@ -11,15 +11,25 @@ local function makenewobjfn(constructor)
 end
 
 local function super(obj, ...)
-  -- XXX
-  obj.x = 11
+  local class = getmetatable(obj).__index
+  local parent = (getmetatable(class) or {}).__index
+  local constructor
+  repeat
+    local parentmt = getmetatable(parent)
+    if not parentmt then
+      error("super can be used only in classes with constructable ancestor", 2)
+    end
+    parent = parentmt.__index
+    constructor = parentmt[constructorkey]
+  until constructor
+  constructor(obj, ...)
 end
--- TODO setup init in class' env
 
 local function setupconstructor(classmt, classdef)
   local constructor = classdef[constructorkey]
   if constructor then
     classmt.__call = makenewobjfn(constructor)
+    classmt[constructorkey] = constructor
   end
   classdef[constructorkey] = nil
 end

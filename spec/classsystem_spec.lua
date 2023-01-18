@@ -137,6 +137,15 @@ describe("class with constructor", function()
     local obj = Class(12)
     assert.equal(12, obj:getx())
   end)
+
+  it("throws error if super is used without parent", function()
+    local Class = class {
+      [init] = function(self)
+        class.super(self)
+      end
+    }
+    assert.has_error(function() Class() end, "super can be used only in classes with constructable ancestor")
+  end)
 end)
 
 describe("class with parent", function()
@@ -224,5 +233,36 @@ describe("class with parent", function()
     local obj = Class(11, 12)
     assert.equal(11, obj.x)
     assert.equal(12, obj.y)
+  end)
+
+  it("calls constructor of first ancestor that has constructor #experimental", function()
+    local Ancestor = class {
+      [init] = function(self)
+        self.x = 15
+      end,
+    }
+    local Parent = class.extends(Ancestor)()
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        super(self)
+      end,
+    }
+    local obj = Class()
+    assert.equal(15, obj.x)
+  end)
+
+  it("can access parent's overridden methods", function()
+    local Parent = class {
+      method = function() return 13 end,
+      instancemethod = function(self) return self.x end,
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self) self.x = 14 end,
+      method = function() return Parent.method() end,
+      instancemethod = function(self) return Parent.instancemethod(self) end,
+    }
+    assert.equal(13, Class.method())
+    local obj = Class()
+    assert.equal(14, obj:instancemethod())
   end)
 end)
