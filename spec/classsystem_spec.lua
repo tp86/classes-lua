@@ -103,4 +103,27 @@ describe("class with constructor", function()
     assert.equal(8, obj.x)
     assert.equal(9, obj.y)
   end)
+
+  it("constructs separate objects", function()
+    local Class = class {
+      [init] = function(self, x)
+        self.x = x
+      end
+    }
+    local obj1, obj2 = Class(10), Class(11)
+    assert.are_not_equal(obj1, obj2)
+    assert.equal(10, obj1.x)
+    assert.equal(11, obj2.x)
+  end)
+
+  it("constructs separate objects that have access to common class' fields", function()
+    local Class = class {
+      [init] = function() end,
+      field = {},
+    }
+    local obj1, obj2 = Class(), Class()
+    assert.are_not_equal(obj1, obj2)
+    assert.equal(Class.field, obj1.field)
+    assert.equal(Class.field, obj2.field)
+  end)
 end)
