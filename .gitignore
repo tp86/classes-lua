@@ -25,6 +25,9 @@ luac.out
 *.def
 *.exp
 
+# luarocks libraries
+/.luarocks/
+
 # Shared objects (inc. Windows DLLs)
 *.dll
 *.so
