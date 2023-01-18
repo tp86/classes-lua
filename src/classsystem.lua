@@ -1,21 +1,22 @@
 local function makemt(constructor)
   return {
-    __call = function(cls)
+    __call = function(cls, ...)
       local obj = {}
       setmetatable(obj, cls)
-      constructor(obj)
+      constructor(obj, ...)
       return obj
     end,
   }
 end
 
-local constructor = {}
+local constructorkey = {}
 
 local function handleconstructor(classdef)
-  if classdef[constructor] then
-    local classmt = makemt(classdef[constructor])
+  local constructor = classdef[constructorkey]
+  if constructor then
+    local classmt = makemt(constructor)
     setmetatable(classdef, classmt)
-    classdef[constructor] = nil
+    classdef[constructorkey] = nil
   end
 end
 
@@ -28,5 +29,5 @@ end
 
 return {
   class = class,
-  constructor = constructor,
+  constructor = constructorkey,
 }

@@ -91,4 +91,16 @@ describe("class with constructor", function()
     assert.is_nil(obj[init])
     assert.has_error(function() obj() end)
   end)
+
+  it("constructs objects based on passed parameters", function()
+    local Class = class {
+      [init] = function(self, x, y)
+        self.x = x
+        self.y = y
+      end
+    }
+    local obj = Class(8, 9)
+    assert.equal(8, obj.x)
+    assert.equal(9, obj.y)
+  end)
 end)
