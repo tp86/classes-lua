@@ -1,6 +1,6 @@
 ---@diagnostic disable: undefined-global
 
-local class = require "classsystem".class
+local class = require "classsystem"
 
 describe("class without constructor", function()
 
@@ -29,9 +29,9 @@ describe("class without constructor", function()
   end)
 end)
 
-describe("class with constructor", function()
+local init = class.constructor
 
-  local init = require "classsystem".constructor
+describe("class with constructor", function()
 
   it("can be created", function()
     local Class = class {
@@ -125,5 +125,104 @@ describe("class with constructor", function()
     assert.are_not_equal(obj1, obj2)
     assert.equal(Class.field, obj1.field)
     assert.equal(Class.field, obj2.field)
+  end)
+
+  it("constructs object with instance methods defined in class", function()
+    local Class = class {
+      [init] = function(self, x)
+        self.x = x
+      end,
+      getx = function(self) return self.x end,
+    }
+    local obj = Class(12)
+    assert.equal(12, obj:getx())
+  end)
+end)
+
+describe("class with parent", function()
+
+  it("can be created", function()
+    local Parent = class()
+    local Class = class.extends(Parent)()
+    assert.is_not_nil(Class)
+  end)
+
+  it("can access parent's fields and methods", function()
+    local Parent = class {
+      field = 1,
+      method = function() return 2 end,
+    }
+    local Class = class.extends(Parent)()
+    assert.equal(1, Class.field)
+    assert.equal(2, Class.method())
+  end)
+
+  it("constructs object that can access parent's fields and methods", function()
+    local Parent = class {
+      parentfield = 3,
+      parentmethod = function() return 4 end,
+      parentinstancemethod = function(self) return self.x end,
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        self.x = 5
+      end
+    }
+    local obj = Class()
+    assert.equal(3, obj.parentfield)
+    assert.equal(4, obj.parentmethod())
+    assert.equal(5, obj:parentinstancemethod())
+  end)
+
+  it("can override parent's methods", function()
+    local Parent = class {
+      method = function(self) return self.x end,
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        self.x = 6
+        self.y = 7
+      end,
+      method = function(self) return self.y end,
+    }
+    local obj = Class()
+    assert.equal(7, obj:method())
+  end)
+
+  it("supports inheritance chain", function()
+    local Ancestor = class {
+      ancestorfield = 8
+    }
+    local Parent = class.extends(Ancestor) {
+      parentfield = 9
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        self.field = 10
+      end
+    }
+    local obj = Class()
+    assert.equal(8, obj.ancestorfield)
+    assert.equal(9, obj.parentfield)
+    assert.equal(10, obj.field)
+  end)
+
+  local super = class.super
+
+  it("can call parent's constructor with parameters", function()
+    local Parent = class {
+      [init] = function(self, x)
+        self.x = x
+      end
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self, x, y)
+        super(self, x)
+        self.y = y
+      end
+    }
+    local obj = Class(11, 12)
+    assert.equal(11, obj.x)
+    assert.equal(12, obj.y)
   end)
 end)
