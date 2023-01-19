@@ -1,6 +1,6 @@
 ---@diagnostic disable: undefined-global
 
-local class = require "classsystem"
+local class = require "class"
 
 describe("class without constructor", function()
 
