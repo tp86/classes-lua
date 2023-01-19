@@ -266,3 +266,76 @@ describe("class with parent", function()
     assert.equal(14, obj:instancemethod())
   end)
 end)
+
+describe("class with multiple parents", function()
+
+  it("can be created", function()
+    local Parent1 = class()
+    local Parent2 = class()
+    local Class = class.extends(Parent1, Parent2)()
+    assert.is_not_nil(Class)
+  end)
+
+  it("can access both parents' fields and methods", function()
+    local Parent1 = class {
+      field1 = 1,
+      method1 = function() return 2 end,
+    }
+    local Parent2 = class {
+      field2 = 3,
+      method2 = function() return 4 end,
+    }
+    local Class = class.extends(Parent1, Parent2)()
+    assert.equal(1, Class.field1)
+    assert.equal(2, Class.method1())
+    assert.equal(3, Class.field2)
+    assert.equal(4, Class.method2())
+  end)
+
+  it("can override both parents' methods", function()
+    local Parent1 = class {
+      method1 = function() return 5 end,
+    }
+    local Parent2 = class {
+      method2 = function() return 6 end,
+    }
+    local Class = class.extends(Parent1, Parent2) {
+      method1 = function() return 7 end,
+      method2 = function() return 8 end,
+    }
+    assert.equal(7, Class.method1())
+    assert.equal(8, Class.method2())
+  end)
+
+  it("inherits methods in extension order", function()
+    local Parent1 = class {
+      method = function() return 9 end,
+    }
+    local Parent2 = class {
+      method = function() return 10 end,
+    }
+    local Class = class.extends(Parent1, Parent2)()
+    assert.equal(9, Class.method())
+  end)
+
+  it("handles diamond inheritance", function()
+    local Root = class {
+      [init] = function(self)
+        self.x = 11
+      end,
+      inc = function(self)
+        self.x = self.x + 1
+      end,
+    }
+    local Parent1 = class.extends(Root)()
+    local Parent2 = class.extends(Root)()
+    local Class = class.extends(Parent1, Parent2) {
+      [init] = function(self)
+        class.super(self)
+      end
+    }
+    local obj = Class()
+    obj:inc()
+    assert.equal(12, obj.x)
+  end)
+end)
