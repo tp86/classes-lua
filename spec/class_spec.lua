@@ -265,6 +265,9 @@ describe("class with parent", function()
     local obj = Class()
     assert.equal(14, obj:instancemethod())
   end)
+
+  pending("calls super starting searching from current class", function()
+  end)
 end)
 
 describe("class with multiple parents", function()
