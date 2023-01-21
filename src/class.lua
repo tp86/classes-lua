@@ -25,20 +25,24 @@ local function getfirstconstructor(class)
     for _, parent in ipairs(parents) do
       local parentmt = getmetatable(parent)
       constructor = parentmt[constructorkey]
-      if constructor then return constructor end
-      constructor = getfirstconstructor(parent)
-      if constructor then return constructor end
+      if constructor then return constructor, parent end
+      local constructorclass
+      constructor, constructorclass = getfirstconstructor(parent)
+      if constructor then return constructor, constructorclass end
     end
   end)
 end
 
+local superstack = {}
 local function super(object, ...)
-  local class = getmetatable(object).__index
-  local constructor = getfirstconstructor(class)
+  local class = superstack[#superstack] or getmetatable(object).__index
+  local constructor, constructorclass = getfirstconstructor(class)
   if not constructor then
     error("super can be used only in classes with constructable ancestor", 2)
   end
+  table.insert(superstack, constructorclass)
   constructor(object, ...)
+  table.remove(superstack)
 end
 
 local function setupconstructor(classmt, class)

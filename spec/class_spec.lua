@@ -266,7 +266,21 @@ describe("class with parent", function()
     assert.equal(14, obj:instancemethod())
   end)
 
-  pending("calls super starting searching from current class", function()
+  it("calls super starting searching from current class", function()
+    local Ancestor = class {
+      [init] = function(self) end,
+    }
+    local Parent = class.extends(Ancestor) {
+      [init] = function(self)
+        class.super(self)
+      end,
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        class.super(self)
+      end
+    }
+    assert.has_no_error(function() Class() end, "stack overflow")
   end)
 end)
 
