@@ -19,12 +19,16 @@ local function handleparents(class, handler)
   end
 end
 
+local function getclassconstructor(class)
+  local classmt = getmetatable(class)
+  return classmt[constructorkey]
+end
+
 local function getfirstconstructor(class)
   return handleparents(class, function(parents)
     local constructor
     for _, parent in ipairs(parents) do
-      local parentmt = getmetatable(parent)
-      constructor = parentmt[constructorkey]
+      constructor = getclassconstructor(parent)
       if constructor then return constructor, parent end
       local constructorclass
       constructor, constructorclass = getfirstconstructor(parent)
@@ -34,15 +38,30 @@ local function getfirstconstructor(class)
 end
 
 local superstack = {}
-local function super(object, ...)
-  local class = superstack[#superstack] or getmetatable(object).__index
-  local constructor, constructorclass = getfirstconstructor(class)
-  if not constructor then
-    error("super can be used only in classes with constructable ancestor", 2)
-  end
+
+local function constructorsupercall(constructor, constructorclass, object, ...)
   table.insert(superstack, constructorclass)
   constructor(object, ...)
   table.remove(superstack)
+end
+
+local function super(object, ancestor)
+  if ancestor then
+    -- XXX buggy: assumes that ancestor has constructor and is really an ancestor of object
+    -- TODO tests for above cases
+    return function(...)
+      constructorsupercall(getclassconstructor(ancestor), ancestor, object, ...)
+    end
+  else
+    return function(...)
+      local class = superstack[#superstack] or getmetatable(object).__index
+      local constructor, constructorclass = getfirstconstructor(class)
+      if not constructor then
+        error("super can be used only in classes with constructable ancestor", 3)
+      end
+      constructorsupercall(constructor, constructorclass, object, ...)
+    end
+  end
 end
 
 local function setupconstructor(classmt, class)
