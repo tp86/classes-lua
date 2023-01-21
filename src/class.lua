@@ -49,6 +49,9 @@ local function super(object, ancestor)
   if ancestor then
     -- XXX buggy: assumes that ancestor has constructor and is really an ancestor of object
     -- TODO tests for above cases
+    -- to consider: super calls constructor only in direct parents -- much easier to maintain and reason about
+    --              - without ancestor/parent class - searches for first parent with constructor (no recursion)
+    --              - with ancestor/parent class - searches for given parent (to ensure it is a parent and get its constructor)
     return function(...)
       constructorsupercall(getclassconstructor(ancestor), ancestor, object, ...)
     end
