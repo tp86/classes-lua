@@ -137,15 +137,6 @@ describe("class with constructor", function()
     local obj = Class(12)
     assert.equal(12, obj:getx())
   end)
-
-  it("throws error if super is used without parent", function()
-    local Class = class {
-      [init] = function(self)
-        class.super(self)()
-      end
-    }
-    assert.has_error(function() Class() end, "super can be used only in classes with constructable ancestor")
-  end)
 end)
 
 describe("class with parent", function()
@@ -214,42 +205,6 @@ describe("class with parent", function()
     assert.equal(8, obj.ancestorfield)
     assert.equal(9, obj.parentfield)
     assert.equal(10, obj.field)
-  end)
-
-  local super = class.super
-
-  it("can call parent's constructor with parameters", function()
-    local Parent = class {
-      [init] = function(self, x)
-        self.x = x
-      end
-    }
-    local Class = class.extends(Parent) {
-      [init] = function(self, x, y)
-        super(self)(x)
-        self.y = y
-      end
-    }
-    local obj = Class(11, 12)
-    assert.equal(11, obj.x)
-    assert.equal(12, obj.y)
-  end)
-
-  it("calls constructor of first ancestor that has constructor #experimental", function()
-    -- this is probably an overkill, should only consider direct parents
-    local Ancestor = class {
-      [init] = function(self)
-        self.x = 15
-      end,
-    }
-    local Parent = class.extends(Ancestor)()
-    local Class = class.extends(Parent) {
-      [init] = function(self)
-        super(self)()
-      end,
-    }
-    local obj = Class()
-    assert.equal(15, obj.x)
   end)
 
   it("can access parent's overridden methods", function()
@@ -335,48 +290,115 @@ describe("class with multiple parents", function()
     local Class = class.extends(Parent1, Parent2)()
     assert.equal(9, Class.method())
   end)
+end)
 
-  it("handles diamond inheritance", function()
-    local Root = class {
-      [init] = function(self)
-        self.x = 11
-      end,
-      inc = function(self)
-        self.x = self.x + 1
-      end,
-    }
-    local Parent1 = class.extends(Root)()
-    local Parent2 = class.extends(Root)()
-    local Class = class.extends(Parent1, Parent2) {
-      [init] = function(self)
-        class.super(self)()
-      end
-    }
-    local obj = Class()
-    obj:inc()
-    assert.equal(12, obj.x)
-  end)
+describe("class with parent constructors", function()
 
-  it("can call constructor of specified ancestor", function()
-    local Ancestor1 = class {
+  it("calls first constructor found among direct parents", function()
+    local Ancestor = class {
       [init] = function(self)
         self.x = 1
       end,
     }
-    local Ancestor2 = class {
+    local Parent1 = class.extends(Ancestor)()
+    local Parent2 = class {
       [init] = function(self)
         self.x = 2
       end,
     }
-    local Parent = class.extends(Ancestor1, Ancestor2) {
-      [init] = function() end,
-    }
-    local Class = class.extends(Parent) {
+    local Class = class.extends(Parent1, Parent2) {
       [init] = function(self)
-        class.super(self, Ancestor2)()
+        class.parent(self)()
       end,
     }
     local object = Class()
     assert.equal(2, object.x)
+  end)
+
+  it("throws error if parent class doesn't have constructor", function()
+    local Ancestor = class {
+      [init] = function(self)
+        self.x = 3
+      end,
+    }
+    local Parent = class.extends(Ancestor)()
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        class.parent(self)()
+      end,
+    }
+    assert.has_error(function() Class() end, "parent constructor not found")
+  end)
+
+  it("calls parent constructor with parameters", function()
+    local Parent = class {
+      [init] = function(self, x)
+        self.x = x
+      end,
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self, x)
+        class.parent(self)(x)
+      end,
+    }
+    local object = Class(4)
+    assert.equal(4, object.x)
+  end)
+
+  it("supports chained constructors", function()
+    local Ancestor = class {
+      [init] = function() end,
+    }
+    local Parent = class.extends(Ancestor) {
+      [init] = function(self)
+        class.parent(self)()
+      end,
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        class.parent(self)()
+      end,
+    }
+    assert.has_no_error(function() Class() end, "stack overflow")
+  end)
+
+  it("calls specified parent's constructor", function()
+    local Parent1 = class {
+      [init] = function(self)
+        self.x = 5
+      end,
+    }
+    local Parent2 = class {
+      [init] = function(self)
+        self.x = 6
+      end,
+    }
+    local Parent3 = class {
+      [init] = function(self)
+        self.x = 7
+      end,
+    }
+    local Class = class.extends(Parent1, Parent2, Parent3) {
+      [init] = function(self)
+        class.parent(self, Parent2)()
+      end,
+    }
+    local object = Class()
+    assert.equal(6, object.x)
+  end)
+
+  it("throws error if parent class is not a parent", function()
+    local Ancestor = class {
+      [init] = function() end,
+    }
+    local Parent = class.extends(Ancestor) {
+      [init] = function() end,
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        class.parent(self, Ancestor)()
+      end,
+    }
+    assert.has_error(function() Class() end, "parent constructor not found")
   end)
 end)
