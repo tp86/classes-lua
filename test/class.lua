@@ -226,7 +226,69 @@ Test_class_with_parent = {
     lu.assert_equals(14, object:instancemethod())
   end,
 
-  _test_can_override_ancestor_methods = function()
+  test_can_override_ancestor_methods = function()
+    local Ancestor = class {
+      method = function() return 15 end,
+    }
+    local Parent = class.extends(Ancestor)()
+    local Class = class.extends(Parent) {
+      [init] = function() end,
+      method = function() return 16 end,
+    }
+    local object = Class()
+    lu.assert_equals(object.method(), 16)
+  end,
+}
+
+Test_class_with_multiple_parents = {
+
+  test_can_be_created = function()
+    local Parent1 = class()
+    local Parent2 = class()
+    local Class = class.extends(Parent1, Parent2)()
+    lu.assert_not_nil(Class)
+  end,
+
+  test_can_access_both_parents_fields_and_methods = function()
+    local Parent1 = class {
+      field1 = 1,
+      method1 = function() return 2 end,
+    }
+    local Parent2 = class {
+      field2 = 3,
+      method2 = function() return 4 end,
+    }
+    local Class = class.extends(Parent1, Parent2)()
+    lu.assert_equals(Class.field1, 1)
+    lu.assert_equals(Class.method1(), 2)
+    lu.assert_equals(Class.field2, 3)
+    lu.assert_equals(Class.method2(), 4)
+  end,
+
+  test_can_override_both_parents_methods = function()
+    local Parent1 = class {
+      method1 = function() return 5 end,
+    }
+    local Parent2 = class {
+      method2 = function() return 6 end,
+    }
+    local Class = class.extends(Parent1, Parent2) {
+      method1 = function() return 7 end,
+      method2 = function() return 8 end,
+    }
+    lu.assert_equals(Class.method1(), 7)
+    lu.assert_equals(Class.method2(), 8)
+  end,
+
+  test_inherits_methods_in_extension_order = function()
+    local Parent1 = class {
+      method = function() return 9 end,
+    }
+    local Parent2 = class {
+      method = function() return 10 end,
+    }
+    local Class = class.extends(Parent1, Parent2)()
+    lu.assert_equals(Class.method(), 9)
   end,
 }
 
