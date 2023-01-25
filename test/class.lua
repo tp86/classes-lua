@@ -1,7 +1,3 @@
-local runner = not ... or #arg > 0
-if runner then
-  package.path = table.concat({ "src/?.lua", ".luarocks/share/lua/5.4/?.lua", package.path }, ";")
-end
 local lu = require "luaunit"
 
 local class = require "class"
@@ -292,6 +288,31 @@ Test_class_with_multiple_parents = {
   end,
 }
 
+Test_class_with_parent_constructor_calls = {
+
+  test_calls_first_constructor_found_among_direct_parents = function()
+    local Ancestor = class {
+      [init] = function(self)
+        self.x = 1
+      end,
+    }
+    local Parent1 = class.extends(Ancestor)()
+    local Parent2 = class {
+      [init] = function(self)
+        self.x = 2
+      end,
+    }
+    local Class = class.extends(Parent1, Parent2) {
+      [init] = function(self)
+        class.parent(self)()
+      end,
+    }
+    local object = Class()
+    lu.assert_equals(object.x, 2)
+  end,
+}
+
+local runner = not ... or #arg > 0
 if runner then
   os.exit(lu.LuaUnit.run())
 end
