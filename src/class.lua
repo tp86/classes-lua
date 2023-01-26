@@ -77,7 +77,7 @@ local function getparentconstructors(class)
     for _, parent in ipairs(parents) do
       local constructor = getclassconstructor(parent)
       if constructor then
-        table.insert(constructors, { constructor, parent })
+        table.insert(constructors, { parent, constructor })
       end
     end
     return constructors
@@ -92,24 +92,32 @@ local function parentconstructorcall(constructor, class, object, ...)
   table.remove(parentstack)
 end
 
-local function initparent(object, parent)
+local function getfirstparentconstructor(parentconstructors)
+  local first = parentconstructors[1] or {}
+  return first[1], first[2]
+end
+
+local function findparentconstructor(parentconstructors, parent)
+  for _, parentconstructor in ipairs(parentconstructors) do
+    if parentconstructor[1] == parent then
+      return table.unpack(parentconstructor)
+    end
+  end
+end
+
+local function getparentconstructor(class, parent)
+  local parentconstructors = getparentconstructors(class)
+  if not parent then
+    return getfirstparentconstructor(parentconstructors)
+  else
+    return findparentconstructor(parentconstructors, parent)
+  end
+end
+
+local function initparent(object, requestedparent)
   return function(...)
     local class = parentstack[#parentstack] or getmetatable(object).__index
-    local parentconstructors = getparentconstructors(class)
-    local constructor, parentclass
-    if not parent then
-      local first = parentconstructors[1] or {}
-      constructor, parentclass = first[1], first[2]
-    else
-      for _, parentconstructor in ipairs(parentconstructors) do
-        local c, p = parentconstructor[1], parentconstructor[2]
-        if p == parent then
-          constructor = c
-          parentclass = p
-          break
-        end
-      end
-    end
+    local parentclass, constructor = getparentconstructor(class, requestedparent)
     if not constructor then
       error("parent constructor not found", 2)
     end
