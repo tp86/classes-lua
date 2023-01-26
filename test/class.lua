@@ -310,6 +310,93 @@ Test_class_with_parent_constructor_calls = {
     local object = Class()
     lu.assert_equals(object.x, 2)
   end,
+
+  test_throws_error_if_parent_class_does_not_have_constructor = function()
+    local Ancestor = class {
+      [init] = function(self)
+        self.x = 3
+      end,
+    }
+    local Parent = class.extends(Ancestor)()
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        class.parent(self)()
+      end,
+    }
+    lu.assert_error_msg_contains("parent constructor not found", function() Class() end)
+  end,
+
+  test_calls_parent_constructor_with_parameters = function()
+    local Parent = class {
+      [init] = function(self, x)
+        self.x = x
+      end,
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self, x)
+        class.parent(self)(x)
+      end,
+    }
+    local object = Class(4)
+    lu.assert_equals(object.x, 4)
+  end,
+
+  test_supports_chained_constructors = function()
+    local Ancestor = class {
+      [init] = function() end,
+    }
+    local Parent = class.extends(Ancestor) {
+      [init] = function(self)
+        class.parent(self)()
+      end,
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        class.parent(self)()
+      end,
+    }
+    lu.assert_true(pcall(function() Class() end))
+  end,
+
+  test_calls_specified_parent_constructor = function()
+    local Parent1 = class {
+      [init] = function(self)
+        self.x = 5
+      end,
+    }
+    local Parent2 = class {
+      [init] = function(self)
+        self.x = 6
+      end,
+    }
+    local Parent3 = class {
+      [init] = function(self)
+        self.x = 7
+      end,
+    }
+    local Class = class.extends(Parent1, Parent2, Parent3) {
+      [init] = function(self)
+        class.parent(self, Parent2)()
+      end,
+    }
+    local object = Class()
+    lu.assert_equals(object.x, 6)
+  end,
+
+  test_throws_error_if_specified_parent_class_is_not_a_parent = function()
+    local Ancestor = class {
+      [init] = function() end,
+    }
+    local Parent = class.extends(Ancestor) {
+      [init] = function() end,
+    }
+    local Class = class.extends(Parent) {
+      [init] = function(self)
+        class.parent(self, Ancestor)()
+      end,
+    }
+    lu.assert_error_msg_contains("parent constructor not found", function() Class() end)
+  end,
 }
 
 local runner = not ... or #arg > 0
